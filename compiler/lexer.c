@@ -3,72 +3,101 @@
 #include "common.h"
 #include "lexer.h"
 
-typedef struct {
+struct lexer_t {
   const char *start;
   const char *current;
   int line;
-} Lexer;
+};
 
-Lexer lexer;
-
-void init_lexer(const char *source) {
+lexer_t *lexer_new(const char *source) {
   assert(source);
 
-  lexer.start = source;
-  lexer.current = source;
-  lexer.line = 1;
+  lexer_t *lexer = (lexer_t *)malloc(sizeof(*lexer));
+  if (lexer == NULL) {
+    ERROR_OUT();
+  }
+
+  lexer->start = source;
+  lexer->current = source;
+  lexer->line = 1;
+
+  return lexer;
 }
 
-static Token error_token(const char *message) {
+void lexer_free(lexer_t **lexer) {
+  assert(lexer && *lexer);
+
+  free(*lexer);
+  *lexer = NULL;
+}
+
+static Token error_token(const char *message, int line) {
   assert(message);
 
   Token token;
   token.type = TOKEN_ERROR;
-  token.line = lexer.line;
+  token.line = line;
   token.start = message;
   token.length = strlen(message);
 
   return token;
 }
 
-static Token make_token(TokenType type) {
+static Token make_token(lexer_t *lexer, TokenType type) {
+  assert(lexer);
+
   Token token;
   token.type = type;
-  token.line = lexer.line;
-  token.start = lexer.start;
-  token.length = (int)(lexer.current - lexer.start);
+  token.line = lexer->line;
+  token.start = lexer->start;
+  token.length = (int)(lexer->current - lexer->start);
 
   return token;
 }
 
-static bool is_at_end() { return *lexer.current == '\0'; }
+static bool is_at_end(lexer_t *lexer) {
+  assert(lexer);
+
+  return *lexer->current == '\0';
+}
 
 static bool is_digit(char c) { return '0' <= c && c <= '9'; }
 
-static char peek() { return *lexer.current; }
+static char peek(lexer_t *lexer) {
+  assert(lexer);
 
-static char previous() { return *(lexer.current - 1); }
-
-static char advance() {
-  assert(!is_at_end());
-
-  return *(lexer.current++);
+  return *lexer->current;
 }
 
-static void skip_whitespace() {
+static char previous(lexer_t *lexer) {
+  assert(lexer);
+
+  return *(lexer->current - 1);
+}
+
+static char advance(lexer_t *lexer) {
+  assert(lexer);
+  assert(!is_at_end(lexer));
+
+  return *(lexer->current++);
+}
+
+static void skip_whitespace(lexer_t *lexer) {
+  assert(lexer);
+
   for (;;) {
-    char c = peek();
+    char c = peek(lexer);
 
     switch (c) {
     case ' ':
     case '\r':
     case '\t':
-      advance();
+      advance(lexer);
       break;
 
     case '\n':
-      lexer.line++;
-      advance();
+      lexer->line++;
+      advance(lexer);
       break;
     default:
       return;
@@ -76,41 +105,44 @@ static void skip_whitespace() {
   }
 }
 
-static Token number() {
-  assert(is_digit(previous()));
+static Token number(lexer_t *lexer) {
+  assert(lexer);
+  assert(is_digit(previous(lexer)));
 
-  while (is_digit(peek())) {
-    advance();
+  while (is_digit(peek(lexer))) {
+    advance(lexer);
   }
 
-  return make_token(TOKEN_NUMBER);
+  return make_token(lexer, TOKEN_NUMBER);
 }
 
-Token lex_token() {
-  skip_whitespace();
+Token lexer_read_token(lexer_t *lexer) {
+  assert(lexer);
 
-  lexer.start = lexer.current;
+  skip_whitespace(lexer);
 
-  if (is_at_end()) {
-    return make_token(TOKEN_EOF);
+  lexer->start = lexer->current;
+
+  if (is_at_end(lexer)) {
+    return make_token(lexer, TOKEN_EOF);
   }
 
-  char c = advance();
+  char c = advance(lexer);
 
   if (is_digit(c)) {
-    return number();
+    return number(lexer);
   }
 
   switch (c) {
   case '+':
-    return make_token(TOKEN_PLUS);
+    return make_token(lexer, TOKEN_PLUS);
   case '-':
-    return make_token(TOKEN_MINUS);
+    return make_token(lexer, TOKEN_MINUS);
   case '*':
-    return make_token(TOKEN_STAR);
+    return make_token(lexer, TOKEN_STAR);
   case '/':
-    return make_token(TOKEN_SLASH);
+    return make_token(lexer, TOKEN_SLASH);
   }
 
-  return error_token("Unknown character.");
+  return error_token("Unknown character.", lexer->line);
 }

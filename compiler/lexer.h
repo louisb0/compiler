@@ -1,6 +1,8 @@
 #ifndef lexer_h
 #define lexer_h
 
+typedef struct lexer_t lexer_t;
+
 typedef enum {
   TOKEN_NUMBER,
   TOKEN_PLUS,
@@ -13,13 +15,15 @@ typedef enum {
 
 typedef struct {
   TokenType type;
+
   const char *start;
   int length;
   int line;
 } Token;
 
-void init_lexer(const char *source);
+lexer_t *lexer_new(const char *source);
+void lexer_free(lexer_t **lexer);
 
-Token lex_token();
+Token lexer_read_token(lexer_t *lexer);
 
 #endif
