@@ -1,12 +1,14 @@
 #include "compiler/ast.h"
 
 int main() {
-  AST_Node *one = ast_tmp_new_number(1);
-  AST_Node *two = ast_tmp_new_number(2);
-  AST_Node *three = ast_tmp_new_number(3);
+  lexer_token tmp;
 
-  AST_Node *sum = ast_tmp_new_binary(one, '+', two);
-  AST_Node *divide = ast_tmp_new_binary(sum, '/', three);
+  ast_node *one = ast_new_number(tmp, 1);
+  ast_node *two = ast_new_number(tmp, 2);
+  ast_node *three = ast_new_number(tmp, 3);
+
+  ast_node *sum = ast_new_binary(tmp, one, '+', two);
+  ast_node *divide = ast_new_binary(tmp, sum, '/', three);
 
   ast_print(divide);
   ast_free(divide);

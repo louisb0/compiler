@@ -11,19 +11,19 @@ typedef enum {
   TOKEN_SLASH,
   TOKEN_EOF,
   TOKEN_ERROR,
-} TokenType;
+} lexer_token_type;
 
 typedef struct {
-  TokenType type;
+  lexer_token_type type;
 
   const char *start;
   int length;
   int line;
-} Token;
+} lexer_token;
 
 lexer_t *lexer_new(const char *source);
 void lexer_free(lexer_t **lexer);
 
-Token lexer_read_token(lexer_t *lexer);
+lexer_token lexer_read_token(lexer_t *lexer);
 
 #endif

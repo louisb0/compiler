@@ -2,9 +2,7 @@
 #include "common.h"
 #include "lexer.h"
 
-Token tmp;
-
-ast_node *ast_new(ast_node_type type, Token token) {
+ast_node *ast_new(ast_node_type type, lexer_token token) {
   ast_node *node = (ast_node *)malloc(sizeof(ast_node));
   if (node == NULL) {
     ERROR_OUT();
@@ -62,16 +60,17 @@ void ast_print(ast_node *root) {
   }
 }
 
-ast_node *ast_tmp_new_number(int value) {
-  ast_node *node = ast_new(AST_NODE_NUMBER, tmp);
+ast_node *ast_new_number(lexer_token token, int value) {
+  ast_node *node = ast_new(AST_NODE_NUMBER, token);
 
   node->as.number.value = value;
 
   return node;
 }
 
-ast_node *ast_tmp_new_binary(ast_node *left, char op, ast_node *right) {
-  ast_node *node = ast_new(AST_NODE_BINARY, tmp);
+ast_node *ast_new_binary(lexer_token token, ast_node *left, char op,
+                         ast_node *right) {
+  ast_node *node = ast_new(AST_NODE_BINARY, token);
 
   node->as.binary.left = left;
   node->as.binary.op = op;
@@ -80,8 +79,8 @@ ast_node *ast_tmp_new_binary(ast_node *left, char op, ast_node *right) {
   return node;
 }
 
-ast_node *ast_tmp_new_unary(char op, ast_node *right) {
-  ast_node *node = ast_new(AST_NODE_UNARY, tmp);
+ast_node *ast_new_unary(lexer_token token, char op, ast_node *right) {
+  ast_node *node = ast_new(AST_NODE_UNARY, token);
 
   node->as.unary.op = op;
   node->as.unary.right = right;

@@ -31,10 +31,10 @@ void lexer_free(lexer_t **lexer) {
   *lexer = NULL;
 }
 
-static Token error_token(const char *message, int line) {
+static lexer_token error_token(const char *message, int line) {
   assert(message);
 
-  Token token;
+  lexer_token token;
   token.type = TOKEN_ERROR;
   token.line = line;
   token.start = message;
@@ -43,10 +43,10 @@ static Token error_token(const char *message, int line) {
   return token;
 }
 
-static Token make_token(lexer_t *lexer, TokenType type) {
+static lexer_token make_token(lexer_t *lexer, lexer_token_type type) {
   assert(lexer);
 
-  Token token;
+  lexer_token token;
   token.type = type;
   token.line = lexer->line;
   token.start = lexer->start;
@@ -105,7 +105,7 @@ static void skip_whitespace(lexer_t *lexer) {
   }
 }
 
-static Token number(lexer_t *lexer) {
+static lexer_token number(lexer_t *lexer) {
   assert(lexer);
   assert(is_digit(previous(lexer)));
 
@@ -116,7 +116,7 @@ static Token number(lexer_t *lexer) {
   return make_token(lexer, TOKEN_NUMBER);
 }
 
-Token lexer_read_token(lexer_t *lexer) {
+lexer_token lexer_read_token(lexer_t *lexer) {
   assert(lexer);
 
   skip_whitespace(lexer);

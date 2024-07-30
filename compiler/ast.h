@@ -13,36 +13,37 @@ typedef enum {
 
 typedef struct {
   int value;
-} AST_Number;
+} ast_number;
 
 typedef struct {
   char op;
   ast_node *right;
-} AST_Unary;
+} ast_unary;
 
 typedef struct {
   char op;
   ast_node *left;
   ast_node *right;
-} AST_Binary;
+} ast_binary;
 
 struct ast_node {
   ast_node_type type;
-  Token token;
+  lexer_token token;
 
   union {
-    AST_Number number;
-    AST_Unary unary;
-    AST_Binary binary;
+    ast_number number;
+    ast_unary unary;
+    ast_binary binary;
   } as;
 };
 
-ast_node *ast_new(ast_node_type type, Token token);
+ast_node *ast_new(ast_node_type type, lexer_token token);
 void ast_free(ast_node *root);
 void ast_print(ast_node *root);
 
-ast_node *ast_tmp_new_number(int value);
-ast_node *ast_tmp_new_binary(ast_node *left, char op, ast_node *right);
-ast_node *ast_tmp_new_unary(char op, ast_node *right);
+ast_node *ast_new_number(lexer_token token, int value);
+ast_node *ast_new_binary(lexer_token token, ast_node *left, char op,
+                         ast_node *right);
+ast_node *ast_new_unary(lexer_token token, char op, ast_node *right);
 
 #endif
