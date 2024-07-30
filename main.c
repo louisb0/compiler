@@ -1,15 +1,20 @@
 #include "compiler/ast.h"
+#include "compiler/common.h"
+#include "compiler/lexer.h"
+#include "compiler/parser.h"
 
-int main() {
-  lexer_token tmp;
+int main(int argc, char *argv[]) {
+  lexer_t *lexer = lexer_new((const char *)argv[1]);
+  parser_t *parser = parser_new(lexer);
 
-  ast_node *one = ast_new_number(tmp, 1);
-  ast_node *two = ast_new_number(tmp, 2);
-  ast_node *three = ast_new_number(tmp, 3);
+  ast_node *head = parser_run(parser);
+  if (head == NULL) {
+    ERROR_OUT();
+  }
 
-  ast_node *sum = ast_new_binary(tmp, one, '+', two);
-  ast_node *divide = ast_new_binary(tmp, sum, '/', three);
+  ast_print(head);
 
-  ast_print(divide);
-  ast_free(divide);
+  ast_free(&head);
+  lexer_free(&lexer);
+  parser_free(&parser);
 }

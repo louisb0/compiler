@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -MMD -MP
+CFLAGS = -Wall -g -Wextra -MMD -MP
 
 TARGET = bin
 

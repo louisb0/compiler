@@ -12,4 +12,6 @@
     exit(EXIT_FAILURE);                                                        \
   } while (0)
 
+#define UNREACHABLE() assert(!"Unreachable")
+
 #endif
