@@ -1,17 +1,13 @@
-#include <stdio.h>
-
-#include "compiler/lexer.h"
+#include "compiler/ast.h"
 
 int main() {
-  char *str = "1 + 2 / 3";
-  init_lexer((const char *)str);
+  AST_Node *one = ast_tmp_new_number(1);
+  AST_Node *two = ast_tmp_new_number(2);
+  AST_Node *three = ast_tmp_new_number(3);
 
-  for (;;) {
-    Token t = lex_token();
+  AST_Node *sum = ast_tmp_new_binary(one, '+', two);
+  AST_Node *divide = ast_tmp_new_binary(sum, '/', three);
 
-    printf("%d: %.*s\n", t.type, t.length, t.start);
-
-    if (t.type == TOKEN_EOF)
-      break;
-  }
+  ast_print(divide);
+  ast_free(divide);
 }
