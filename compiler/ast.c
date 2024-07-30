@@ -4,8 +4,8 @@
 
 Token tmp;
 
-AST_Node *ast_new(AST_NodeType type, Token token) {
-  AST_Node *node = (AST_Node *)malloc(sizeof(AST_Node));
+ast_node *ast_new(ast_node_type type, Token token) {
+  ast_node *node = (ast_node *)malloc(sizeof(ast_node));
   if (node == NULL) {
     ERROR_OUT();
   }
@@ -16,7 +16,7 @@ AST_Node *ast_new(AST_NodeType type, Token token) {
   return node;
 }
 
-void ast_free(AST_Node *root) {
+void ast_free(ast_node *root) {
   assert(root);
 
   switch (root->type) {
@@ -37,7 +37,7 @@ void ast_free(AST_Node *root) {
   }
 }
 
-void ast_print(AST_Node *root) {
+void ast_print(ast_node *root) {
   assert(root);
 
   switch (root->type) {
@@ -62,16 +62,16 @@ void ast_print(AST_Node *root) {
   }
 }
 
-AST_Node *ast_tmp_new_number(int value) {
-  AST_Node *node = ast_new(AST_NODE_NUMBER, tmp);
+ast_node *ast_tmp_new_number(int value) {
+  ast_node *node = ast_new(AST_NODE_NUMBER, tmp);
 
   node->as.number.value = value;
 
   return node;
 }
 
-AST_Node *ast_tmp_new_binary(AST_Node *left, char op, AST_Node *right) {
-  AST_Node *node = ast_new(AST_NODE_BINARY, tmp);
+ast_node *ast_tmp_new_binary(ast_node *left, char op, ast_node *right) {
+  ast_node *node = ast_new(AST_NODE_BINARY, tmp);
 
   node->as.binary.left = left;
   node->as.binary.op = op;
@@ -80,8 +80,8 @@ AST_Node *ast_tmp_new_binary(AST_Node *left, char op, AST_Node *right) {
   return node;
 }
 
-AST_Node *ast_tmp_new_unary(char op, AST_Node *right) {
-  AST_Node *node = ast_new(AST_NODE_UNARY, tmp);
+ast_node *ast_tmp_new_unary(char op, ast_node *right) {
+  ast_node *node = ast_new(AST_NODE_UNARY, tmp);
 
   node->as.unary.op = op;
   node->as.unary.right = right;
