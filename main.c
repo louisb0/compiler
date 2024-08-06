@@ -2,6 +2,7 @@
 #include "compiler/common.h"
 #include "compiler/lexer.h"
 #include "compiler/parser.h"
+#include "compiler/tac.h"
 
 int main(int argc, char *argv[]) {
   lexer_t *lexer = lexer_new((const char *)argv[1]);
@@ -13,7 +14,12 @@ int main(int argc, char *argv[]) {
   }
 
   ast_print(head);
+  printf("\n");
 
+  tac_program *p = tac_new(head);
+  tac_print(p);
+
+  tac_free(p);
   ast_free(&head);
   lexer_free(&lexer);
   parser_free(&parser);
