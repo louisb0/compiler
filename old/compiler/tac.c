@@ -7,7 +7,7 @@
   }
 
 #define NUMBER_OPERAND(imm)                                                    \
-  (tac_operand) { .type = TAC_IMMEDIATE, .immediate = (imm) }
+  (tac_operand) { .type = TAC_NUMBER, .immediate = (imm) }
 
 #define NO_OPERAND()                                                           \
   (tac_operand) { .type = TAC_NONE }

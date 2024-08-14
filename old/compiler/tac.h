@@ -3,7 +3,7 @@
 
 #include "ast.h"
 
-typedef enum { TAC_IMMEDIATE, TAC_VARIABLE, TAC_NONE } tac_operand_type;
+typedef enum { TAC_NUMBER, TAC_VARIABLE, TAC_NONE } tac_operand_type;
 
 typedef struct {
   tac_operand_type type;

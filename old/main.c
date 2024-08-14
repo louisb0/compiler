@@ -1,3 +1,4 @@
+#include "compiler/asm.h"
 #include "compiler/ast.h"
 #include "compiler/common.h"
 #include "compiler/lexer.h"
@@ -15,9 +16,14 @@ int main(int argc, char *argv[]) {
 
   ast_print(head);
   printf("\n");
+  printf("\n");
 
   tac_program *p = tac_new(head);
   tac_print(p);
+  printf("\n");
+
+  asm_node *a = asm_new(p);
+  asm_print(a);
 
   tac_free(p);
   ast_free(&head);
