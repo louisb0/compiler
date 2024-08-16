@@ -8,7 +8,7 @@
 
 #define ERROR_OUT()                                                            \
   do {                                                                         \
-    printf("Error at %d in %s.\n", __LINE__, __FILE__);                        \
+    printf("Error at line %d in %s.\n", __LINE__, __FILE__);                   \
     exit(EXIT_FAILURE);                                                        \
   } while (0)
 
