@@ -9,9 +9,9 @@ struct symbol_table_t {
   struct symbol_entry **items;
 };
 
-static unsigned int hash(const char *key) {
+static unsigned int hash(const char *key, int length) {
   unsigned int hash = 2166136261u;
-  for (int i = 0; i < (int)strlen(key); i++) {
+  for (int i = 0; i < length; i++) {
     hash ^= (unsigned char)key[i];
     hash *= 16777619;
   }
@@ -49,11 +49,11 @@ void symbol_table_free(symbol_table_t **table) {
   *table = NULL;
 }
 
-void symbol_table_add(symbol_table_t *table, const char *name,
+void symbol_table_add(symbol_table_t *table, struct scanner_token *name,
                       struct ast_node *node) {
   assert(table && name);
 
-  int i = hash(name) % table->capacity;
+  int i = hash(name->start, name->length) % table->capacity;
   struct symbol_entry *entry = malloc(sizeof(*entry));
   entry->name = name;
   entry->decl = node;
@@ -63,13 +63,15 @@ void symbol_table_add(symbol_table_t *table, const char *name,
   table->length++;
 }
 
-struct ast_node *symbol_table_get(symbol_table_t *table, const char *name) {
+struct ast_node *symbol_table_get(symbol_table_t *table,
+                                  struct scanner_token *name) {
   assert(table && name);
-  int i = hash(name) % table->capacity;
+  int i = hash(name->start, name->length) % table->capacity;
   struct symbol_entry *entry = table->items[i];
 
   while (entry) {
-    if (strcmp(entry->name, name) == 0) {
+    if (entry->name->length == name->length &&
+        memcmp(entry->name->start, name->start, name->length) == 0) {
       return entry->decl;
     }
     entry = entry->next;

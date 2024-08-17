@@ -1,5 +1,6 @@
 #include "compiler/ast.h"
 #include "compiler/parser.h"
+#include "compiler/resolver.h"
 #include "compiler/scanner.h"
 #include "compiler/symbols.h"
 
@@ -18,15 +19,16 @@ int main() {
 
   ast_print(root, 0);
 
-  symbol_table_t *symbols = symbol_table_new(5);
+  symbol_table_t *table = symbol_table_new(100);
+  resolver_generate_table(root, table);
 
-  symbol_table_add(symbols, "a", root->as.program.statements[0]);
-  symbol_table_add(symbols, "b", root->as.program.statements[1]);
+  struct scanner_token a = {.start = "a", .length = 1};
+  struct scanner_token b = {.start = "b", .length = 1};
 
-  ast_print(symbol_table_get(symbols, "a"), 0);
-  ast_print(symbol_table_get(symbols, "b"), 0);
+  ast_print(symbol_table_get(table, &a), 0);
+  ast_print(symbol_table_get(table, &b), 0);
 
-  symbol_table_free(&symbols);
+  symbol_table_free(&table);
   ast_free(&root);
   parser_free(&parser);
   scanner_free(&scanner);
