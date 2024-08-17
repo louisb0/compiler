@@ -19,6 +19,7 @@ enum ast_node_type {
 
 enum ast_data_type {
   TYPE_I32,
+  TYPE_BOOL,
 };
 
 struct ast_program {
@@ -59,6 +60,15 @@ struct ast_unary_expr {
   struct ast_node *right;
 };
 
+struct ast_literal_expr {
+  enum ast_data_type type;
+
+  union {
+    int i32;
+    bool boolean;
+  } as;
+};
+
 struct ast_node {
   enum ast_node_type type;
 
@@ -70,9 +80,9 @@ struct ast_node {
     struct ast_grouping_expr grouping_expr;
     struct ast_binary_expr binary_expr;
     struct ast_unary_expr unary_expr;
+    struct ast_literal_expr literal_expr;
 
     struct scanner_token idenitifer;
-    int literal;
   } as;
 };
 
@@ -92,8 +102,9 @@ struct ast_node *ast_new_binary_expr(struct scanner_token token,
                                      struct ast_node *right);
 struct ast_node *ast_new_unary_expr(struct scanner_token token,
                                     struct ast_node *right);
-struct ast_node *ast_new_literal_expr(struct scanner_token name);
+struct ast_node *ast_new_identifier_expr(struct scanner_token name);
 struct ast_node *ast_new_number_expr(int literal);
+struct ast_node *ast_new_bool_expr(bool literal);
 
 void ast_print(struct ast_node *root, int ident);
 

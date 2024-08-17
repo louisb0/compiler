@@ -11,6 +11,9 @@
 
 #define IS_UNARY_TOKEN(type) ((type) == TOKEN_MINUS)
 
+#define IS_LITERAL_TOKEN(type)                                                 \
+  ((type) == TOKEN_TRUE || (type) == TOKEN_FALSE || (type) == TOKEN_NUMBER)
+
 typedef struct parser_t parser_t;
 
 parser_t *parser_new(scanner_t *scanner);

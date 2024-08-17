@@ -116,16 +116,35 @@ struct ast_node *ast_new_unary_expr(struct scanner_token token,
   return node;
 }
 
-struct ast_node *ast_new_number_expr(int literal) {
-  struct ast_node *node = ast_new(AST_LITERAL_EXPR);
-  node->as.literal = literal;
-  return node;
-}
-
-struct ast_node *ast_new_literal_expr(struct scanner_token name) {
+struct ast_node *ast_new_identifier_expr(struct scanner_token name) {
   struct ast_node *node = ast_new(AST_IDENTIFIER_EXPR);
   node->as.idenitifer = name;
   return node;
+}
+
+struct ast_node *ast_new_number_expr(int literal) {
+  struct ast_node *node = ast_new(AST_LITERAL_EXPR);
+  node->as.literal_expr.type = TYPE_I32;
+  node->as.literal_expr.as.i32 = literal;
+  return node;
+}
+
+struct ast_node *ast_new_bool_expr(bool literal) {
+  struct ast_node *node = ast_new(AST_LITERAL_EXPR);
+  node->as.literal_expr.type = TYPE_BOOL;
+  node->as.literal_expr.as.boolean = literal;
+  return node;
+}
+
+static const char *ast_data_type_to_string(enum ast_data_type type) {
+  switch (type) {
+  case TYPE_I32:
+    return "i32";
+  case TYPE_BOOL:
+    return "bool";
+  default:
+    return "unknown";
+  }
 }
 
 void ast_print(struct ast_node *node, int indent) {
@@ -147,7 +166,7 @@ void ast_print(struct ast_node *node, int indent) {
     printf("variable_decl: %.*s (type: %s, constant: %s)\n",
            (int)node->as.variable_decl.name.length,
            node->as.variable_decl.name.start,
-           node->as.variable_decl.type == TYPE_I32 ? "i32" : "unknown",
+           ast_data_type_to_string(node->as.variable_decl.type),
            node->as.variable_decl.is_constant ? "true" : "false");
     if (node->as.variable_decl.initialiser) {
       ast_print(node->as.variable_decl.initialiser, indent + 1);
@@ -177,9 +196,18 @@ void ast_print(struct ast_node *node, int indent) {
     ast_print(node->as.unary_expr.right, indent + 1);
     break;
 
-  case AST_LITERAL_EXPR:
-    printf("literal_expr: %d\n", node->as.literal);
+  case AST_LITERAL_EXPR: {
+    enum ast_data_type type = node->as.literal_expr.type;
+
+    if (type == TYPE_I32) {
+      printf("literal_expr: %d\n", node->as.literal_expr.as.i32);
+    } else if (type == TYPE_BOOL) {
+      printf("literal_expr: %s\n",
+             node->as.literal_expr.as.boolean ? "true" : "false");
+    }
+
     break;
+  }
 
   case AST_IDENTIFIER_EXPR:
     printf("identifier_expr: %.*s\n", (int)node->as.idenitifer.length,

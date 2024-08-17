@@ -123,6 +123,8 @@ static enum scanner_token_type check_keyword(scanner_t *scanner, int start,
 
 static enum scanner_token_type identifier_type(scanner_t *scanner) {
   switch (scanner->start[0]) {
+  case 'b':
+    return check_keyword(scanner, 1, 3, "ool", TOKEN_TYPE_BOOL);
   case 'c':
     return check_keyword(scanner, 1, 4, "onst", TOKEN_CONST);
   case 'f':

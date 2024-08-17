@@ -13,6 +13,7 @@ enum scanner_token_type {
 
   // Types
   TOKEN_TYPE_I32,
+  TOKEN_TYPE_BOOL,
 
   // Identifiers and literals
   TOKEN_IDENTIFIER,

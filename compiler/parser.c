@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "ast.h"
+#include "common.h"
 #include "parser.h"
 #include "scanner.h"
 
@@ -149,7 +150,7 @@ static struct ast_node *parse_binary_expr(parser_t *parser,
                                           struct ast_node *left);
 static struct ast_node *parse_unary_expr(parser_t *parser);
 static struct ast_node *parse_identifier_expr(parser_t *parser);
-static struct ast_node *parse_number_expr(parser_t *parser);
+static struct ast_node *parse_literal_expr(parser_t *parser);
 
 static struct ast_node *parse_precedence(parser_t *parser,
                                          enum parser_precedence prec);
@@ -158,8 +159,8 @@ struct parser_rule rules[] = {
     // Keywords
     [TOKEN_VAR] = {NULL, NULL, PREC_NONE},
     [TOKEN_CONST] = {NULL, NULL, PREC_NONE},
-    [TOKEN_TRUE] = {NULL, NULL, PREC_NONE},
-    [TOKEN_FALSE] = {NULL, NULL, PREC_NONE},
+    [TOKEN_TRUE] = {parse_literal_expr, NULL, PREC_NONE},
+    [TOKEN_FALSE] = {parse_literal_expr, NULL, PREC_NONE},
     [TOKEN_PRINT] = {NULL, NULL, PREC_NONE},
 
     // Types
@@ -167,7 +168,7 @@ struct parser_rule rules[] = {
 
     // Identifiers and literals
     [TOKEN_IDENTIFIER] = {parse_identifier_expr, NULL, PREC_NONE},
-    [TOKEN_NUMBER] = {parse_number_expr, NULL, PREC_NONE},
+    [TOKEN_NUMBER] = {parse_literal_expr, NULL, PREC_NONE},
 
     // Operators
     [TOKEN_PLUS] = {NULL, parse_binary_expr, PREC_TERM},
@@ -202,8 +203,15 @@ static struct ast_node *parse_variable_decl(parser_t *parser) {
   struct scanner_token name = parser->previous;
 
   consume(parser, TOKEN_COLON, "Expected ':' after variable name.");
-  consume(parser, TOKEN_TYPE_I32, "Expected variable type");
-  enum ast_data_type type = TYPE_I32;
+  enum ast_data_type type;
+  if (match(parser, TOKEN_TYPE_I32)) {
+    type = TYPE_I32;
+  } else if (match(parser, TOKEN_TYPE_BOOL)) {
+    type = TYPE_BOOL;
+  } else {
+    error(parser, &parser->current, "Expected variable type.");
+    return NULL;
+  }
 
   consume(parser, TOKEN_EQUAL, "Expected equal after variable type.");
   struct ast_node *initializer = parse_expr(parser);
@@ -253,17 +261,29 @@ static struct ast_node *parse_unary_expr(parser_t *parser) {
 static struct ast_node *parse_identifier_expr(parser_t *parser) {
   assert(parser->previous.type == TOKEN_IDENTIFIER);
 
-  return ast_new_literal_expr(parser->previous);
+  return ast_new_identifier_expr(parser->previous);
 }
 
-static struct ast_node *parse_number_expr(parser_t *parser) {
-  assert(parser->previous.type == TOKEN_NUMBER);
+static struct ast_node *parse_literal_expr(parser_t *parser) {
+  assert(IS_LITERAL_TOKEN(parser->previous.type));
 
-  char tmp[20];
-  strncpy(tmp, parser->previous.start, parser->previous.length);
-  tmp[parser->previous.length] = '\0';
+  switch (parser->previous.type) {
+  case TOKEN_NUMBER: {
+    char tmp[20];
+    strncpy(tmp, parser->previous.start, parser->previous.length);
+    tmp[parser->previous.length] = '\0';
 
-  return ast_new_number_expr(atoi(tmp));
+    return ast_new_number_expr(atoi(tmp));
+  }
+
+  case TOKEN_TRUE:
+  case TOKEN_FALSE:
+    return ast_new_bool_expr(parser->previous.type == TOKEN_TRUE);
+
+  default:
+    UNREACHABLE();
+    break;
+  }
 }
 
 static struct ast_node *parse_decl(parser_t *parser) {
