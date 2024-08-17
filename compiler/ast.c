@@ -42,6 +42,10 @@ void ast_free(struct ast_node **root) {
     ast_free(&(*root)->as.unary_expr.right);
     break;
 
+  case AST_GROUPING_EXPR:
+    ast_free(&(*root)->as.grouping_expr.expr);
+    break;
+
   case AST_LITERAL_EXPR:
   case AST_IDENTIFIER_EXPR:
     break;
