@@ -7,7 +7,7 @@
 
 int main() {
   const char *src = "var a: i32 = 1; const b: i32 = 2;"
-                    "print(a + b / 2 * (-3 - 1));"
+                    "print(c + b / 2 * (-3 - 1));"
                     "var c: bool = true;"
                     "print(a+c);";
 
@@ -19,12 +19,17 @@ int main() {
     return 1;
   }
 
+  // TODO: incorrect ordering: during the pass, check for undeclared
+  // identifiers and report them and exit
   symbol_table_t *table = symbol_table_new(100);
-  resolver_generate_table(root, table);
-
-  if (!typechecker_run(root, table)) {
+  if (!resolver_generate_table(root, table)) {
     return 1;
   }
+
+  // TODO: rewrite this garbage
+  // if (!typechecker_run(root, table)) {
+  //   return 1;
+  // }
 
   ast_print(root, 0);
 
