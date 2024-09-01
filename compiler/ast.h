@@ -17,10 +17,7 @@ enum ast_node_type {
   AST_UNARY_EXPR,
 };
 
-enum ast_data_type {
-  TYPE_I32,
-  TYPE_BOOL,
-};
+enum ast_data_type { TYPE_I32, TYPE_BOOL, TYPE_ERROR };
 
 struct ast_program {
   struct ast_node *statements[MAX_STATEMENTS];

@@ -147,6 +147,7 @@ static const char *ast_data_type_to_string(enum ast_data_type type) {
   }
 }
 
+// TODO: mermaid formats
 void ast_print(struct ast_node *node, int indent) {
   if (node == NULL)
     return;

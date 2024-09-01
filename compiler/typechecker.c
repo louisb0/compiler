@@ -1,151 +1,115 @@
 #include "typechecker.h"
 #include "ast.h"
 #include "common.h"
+#include "scanner.h"
 #include "symbols.h"
 
-static enum ast_data_type typechecker_type(struct ast_node *node,
-                                           symbol_table_t *table) {
-  switch (node->type) {
-  case AST_LITERAL_EXPR:
-    return node->as.literal_expr.type;
-
-  case AST_IDENTIFIER_EXPR: {
-    struct ast_node *symbol = symbol_table_get(table, &node->as.idenitifer);
-    if (symbol == NULL) {
-      fprintf(stderr, "Error: Undeclared identifier\n");
-      return TYPE_I32; // TODO: dont cascade
-    }
-    return symbol->as.variable_decl.type;
-  }
-
-  case AST_BINARY_EXPR: {
-    enum ast_data_type left =
-        typechecker_type(node->as.binary_expr.left, table);
-    enum ast_data_type right =
-        typechecker_type(node->as.binary_expr.right, table);
-
-    if (left != right) {
-      fprintf(stderr, "Error: Type mismatch in binary expression\n");
-      return TYPE_I32; // TODO: dont cascade
-    }
-
-    return left;
-  }
-
-  case AST_UNARY_EXPR:
-    return typechecker_type(node->as.unary_expr.right, table);
-
-  case AST_GROUPING_EXPR:
-    return typechecker_type(node->as.grouping_expr.expr, table);
+static const char *op_to_string(enum scanner_token_type op) {
+  switch (op) {
+  case TOKEN_PLUS:
+    return "+";
+  case TOKEN_MINUS:
+    return "-";
+  case TOKEN_STAR:
+    return "*";
+  case TOKEN_SLASH:
+    return "/";
   default:
-    fprintf(stderr, "Error: Unexpected node type in typechecker_type\n");
-    return TYPE_I32;
+    UNREACHABLE();
+    return NULL;
   }
 }
 
-bool typechecker_run(struct ast_node *root, symbol_table_t *table) {
+static const char *type_to_string(enum ast_data_type type) {
+  switch (type) {
+  case TYPE_I32:
+    return "i32";
+  case TYPE_BOOL:
+    return "bool";
+  case TYPE_ERROR:
+    return "error";
+  default:
+    printf("Debug: type passed to type_to_string: %d\n", (int)type);
+    UNREACHABLE();
+    return NULL;
+  }
+}
+
+enum ast_data_type typecheck(struct ast_node *root, symbol_table_t *table) {
   assert(root);
   assert(table);
 
   switch (root->type) {
   case AST_PROGRAM:
     for (int i = 0; i < root->as.program.num_statements; i++) {
-      if (!typechecker_run(root->as.program.statements[i], table)) {
-        return false;
-      }
+      if (typecheck(root->as.program.statements[i], table) == TYPE_ERROR)
+        return TYPE_ERROR;
     }
-    return true;
-
-  case AST_VARIABLE_DECL: {
-    enum ast_data_type initialiser_type =
-        typechecker_type(root->as.variable_decl.initialiser, table);
-
-    if (initialiser_type != root->as.variable_decl.type) {
-      fprintf(stderr, "Error: Type mismatch in variable declaration\n");
-      return false;
-    }
-
-    return true;
-  }
+    return TYPE_I32; // placeholder
 
   case AST_PRINT_STMT:
-    return typechecker_run(root->as.print_stmt.expr, table);
+    return typecheck(root->as.print_stmt.expr, table);
 
   case AST_BINARY_EXPR: {
-    bool left_valid = typechecker_run(root->as.binary_expr.left, table);
-    bool right_valid = typechecker_run(root->as.binary_expr.right, table);
-    if (!left_valid || !right_valid) {
-      return false;
+    enum ast_data_type left = typecheck(root->as.binary_expr.left, table);
+    enum ast_data_type right = typecheck(root->as.binary_expr.right, table);
+
+    if (left == TYPE_ERROR || right == TYPE_ERROR) {
+      return TYPE_ERROR;
     }
 
-    enum ast_data_type left_type =
-        typechecker_type(root->as.binary_expr.left, table);
-    enum ast_data_type right_type =
-        typechecker_type(root->as.binary_expr.right, table);
-
-    if (left_type != right_type) {
-      fprintf(stderr, "Error: Type mismatch in binary expression\n");
-      return false;
+    if (left == TYPE_I32 && right == TYPE_I32) {
+      return TYPE_I32;
     }
 
-    switch (root->as.binary_expr.token.type) {
-    case TOKEN_PLUS:
-    case TOKEN_MINUS:
-    case TOKEN_STAR:
-    case TOKEN_SLASH:
-      if (left_type != TYPE_I32) {
-        fprintf(stderr,
-                "Error: Arithmetic operations only valid for integers\n");
-        return false;
-      }
-      break;
-    default:
-      UNREACHABLE();
-      return false;
-    }
-    return true;
+    printf("[error] Type mismatch for binary expression '%s %s %s'\n",
+           type_to_string(left), op_to_string(root->as.binary_expr.token.type),
+           type_to_string(right));
+    return TYPE_ERROR;
   }
 
   case AST_UNARY_EXPR: {
-    bool operand_valid = typechecker_run(root->as.unary_expr.right, table);
-    if (!operand_valid) {
-      return false;
-    }
+    enum ast_data_type right = typecheck(root->as.unary_expr.right, table);
 
-    enum ast_data_type operand_type =
-        typechecker_type(root->as.unary_expr.right, table);
+    if (right == TYPE_ERROR)
+      return TYPE_ERROR;
 
-    switch (root->as.unary_expr.token.type) {
-    case TOKEN_MINUS:
-      if (operand_type != TYPE_I32) {
-        fprintf(stderr, "Error: Unary minus only valid for integers\n");
-        return false;
-      }
-      break;
-    default:
-      UNREACHABLE();
-      return false;
-    }
-    return true;
+    if (right == TYPE_I32)
+      return TYPE_I32;
+
+    printf("[error] Type mismatch for unary expression '%s %s'\n",
+           op_to_string(root->as.unary_expr.token.type), type_to_string(right));
+    return TYPE_ERROR;
   }
 
   case AST_GROUPING_EXPR:
-    return typechecker_run(root->as.grouping_expr.expr, table);
+    return typecheck(root->as.grouping_expr.expr, table);
 
-  case AST_LITERAL_EXPR:
-    return true;
+  case AST_IDENTIFIER_EXPR:
+    return symbol_table_get(table, &root->as.idenitifer)->as.variable_decl.type;
 
-  case AST_IDENTIFIER_EXPR: {
-    struct ast_node *symbol = symbol_table_get(table, &root->as.idenitifer);
-    if (symbol == NULL) {
-      fprintf(stderr, "Error: Use of undeclared identifier\n");
-      return false;
-    }
-    return true;
+  case AST_VARIABLE_DECL: {
+    enum ast_data_type initialiser =
+        typecheck(root->as.variable_decl.initialiser, table);
+
+    if (initialiser == TYPE_ERROR)
+      return TYPE_ERROR;
+
+    if (root->as.variable_decl.type == initialiser)
+      return initialiser;
+
+    printf("[error] Cannot assign %s to variable '%.*s' of type %s.\n",
+           type_to_string(initialiser), root->as.variable_decl.name.length,
+           root->as.variable_decl.name.start,
+           type_to_string(root->as.variable_decl.type));
+    return TYPE_ERROR;
   }
 
+  case AST_LITERAL_EXPR:
+    return root->as.literal_expr.type;
+
   default:
-    fprintf(stderr, "Error: Unexpected node type in typechecker_run\n");
+    UNREACHABLE();
     return false;
   }
 }
