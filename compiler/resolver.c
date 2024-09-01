@@ -38,6 +38,12 @@ bool resolver_generate_table(struct ast_node *root, symbol_table_t *table) {
     return true;
 
   case AST_VARIABLE_DECL: {
+    if (symbol_table_get(table, &root->as.variable_decl.name)) {
+      printf("[error] Cannot redeclare variable '%.*s'.\n",
+             root->as.idenitifer.length, root->as.idenitifer.start);
+      return false;
+    }
+
     symbol_table_add(table, &root->as.variable_decl.name, root);
     return true;
   }
