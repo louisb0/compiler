@@ -1,15 +1,43 @@
+#include <stdio.h>
+
 #include "compiler/ast.h"
+#include "compiler/common.h"
 #include "compiler/parser.h"
 #include "compiler/resolver.h"
 #include "compiler/scanner.h"
 #include "compiler/symbols.h"
 #include "compiler/typechecker.h"
 
-int main() {
-  const char *src = "var a: i32 = 1; const b: i32 = 2;"
-                    // "print(a + b / 2 * (-3 - 1));"
-                    "var c: bool = true;"
-                    "print(a+c);";
+const char *read_file(const char *path) {
+  FILE *file = fopen(path, "rb");
+  if (file == NULL)
+    ERROR_OUT();
+
+  fseek(file, 0L, SEEK_END);
+  size_t size = ftell(file);
+  rewind(file);
+
+  char *buffer = (char *)malloc(size + 1);
+  if (buffer == NULL)
+    ERROR_OUT();
+
+  size_t bytes_read = fread(buffer, sizeof(char), size, file);
+  if (bytes_read < size)
+    ERROR_OUT();
+
+  fclose(file);
+
+  buffer[bytes_read] = '\0';
+  return buffer;
+}
+
+int main(int argc, char *argv[]) {
+  if (argc != 2) {
+    printf("[error] Usage: %s <file>\n", argv[0]);
+    return 1;
+  }
+
+  const char *src = read_file(argv[1]);
 
   scanner_t *scanner = scanner_new(src);
   parser_t *parser = parser_new(scanner);

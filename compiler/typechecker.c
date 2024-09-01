@@ -29,7 +29,6 @@ static const char *type_to_string(enum ast_data_type type) {
   case TYPE_ERROR:
     return "error";
   default:
-    printf("Debug: type passed to type_to_string: %d\n", (int)type);
     UNREACHABLE();
     return NULL;
   }
