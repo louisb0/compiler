@@ -68,6 +68,12 @@ static bool is_alpha(char c) {
   return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
 }
 
+static char peek_next(scanner_t *scanner) {
+  assert(scanner);
+
+  return *(scanner->current + 1);
+}
+
 static char peek(scanner_t *scanner) {
   assert(scanner);
 
@@ -98,6 +104,15 @@ static void skip_whitespace(scanner_t *scanner) {
     case '\r':
     case '\t':
       advance(scanner);
+      break;
+
+    case '/':
+      if (peek_next(scanner) == '/') {
+        while (peek(scanner) != '\n' && !is_at_end(scanner))
+          advance(scanner);
+      } else {
+        return;
+      }
       break;
 
     case '\n':
