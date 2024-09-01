@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "compiler/ast.h"
 #include "compiler/common.h"
@@ -8,7 +9,7 @@
 #include "compiler/symbols.h"
 #include "compiler/typechecker.h"
 
-const char *read_file(const char *path) {
+char *read_file(const char *path) {
   FILE *file = fopen(path, "rb");
   if (file == NULL)
     ERROR_OUT();
@@ -32,34 +33,41 @@ const char *read_file(const char *path) {
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 2) {
-    printf("[error] Usage: %s <file>\n", argv[0]);
+  if (argc < 2) {
+    printf("[error] Usage: %s <file> [--dump-ast]\n", argv[0]);
     return 1;
   }
 
-  const char *src = read_file(argv[1]);
+  bool dump_ast = (argc == 3 && strcmp(argv[2], "--dump-ast") == 0);
+  char *src = read_file(argv[1]);
 
   scanner_t *scanner = scanner_new(src);
   parser_t *parser = parser_new(scanner);
 
   struct ast_node *root = NULL;
   if (!parser_run(parser, &root)) {
-    return 1;
+    goto cleanup;
   }
 
   symbol_table_t *table = symbol_table_new(100);
   if (!resolver_generate_table(root, table)) {
-    return 1;
+    goto cleanup;
   }
 
   if (typecheck(root, table) == TYPE_ERROR) {
-    return 1;
+    goto cleanup;
   }
 
-  symbol_table_free(&table);
+  if (dump_ast) {
+    ast_write_mermaid(root, "ast.svg");
+  }
+
+cleanup:
+  free(src);
   ast_free(&root);
   parser_free(&parser);
   scanner_free(&scanner);
+  symbol_table_free(&table);
 
-  return 0;
+  return root ? 0 : 1;
 }

@@ -1,6 +1,8 @@
 bin
 compile_commands.json
 .cache
+*.xt
+*.svg
 
 # Prerequisites
 *.d

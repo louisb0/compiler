@@ -136,6 +136,7 @@ struct ast_node *ast_new_bool_expr(bool literal) {
   return node;
 }
 
+// TODO: duplication with resolver
 static const char *ast_data_type_to_string(enum ast_data_type type) {
   switch (type) {
   case TYPE_I32:
@@ -147,7 +148,6 @@ static const char *ast_data_type_to_string(enum ast_data_type type) {
   }
 }
 
-// TODO: mermaid formats
 void ast_print(struct ast_node *node, int indent) {
   if (node == NULL)
     return;
@@ -218,4 +218,109 @@ void ast_print(struct ast_node *node, int indent) {
   default:
     UNREACHABLE();
   }
+}
+
+static void ast_print_mermaid(struct ast_node *node, int *node_count,
+                              FILE *file) {
+  if (node == NULL)
+    return;
+
+  int current_node = (*node_count)++;
+
+  switch (node->type) {
+  case AST_PROGRAM:
+    fprintf(file, "  node%d[\"Program\"]\n", current_node);
+    for (int i = 0; i < node->as.program.num_statements; i++) {
+      int child_node = *node_count;
+      ast_print_mermaid(node->as.program.statements[i], node_count, file);
+      fprintf(file, "  node%d --> node%d\n", current_node, child_node);
+    }
+    break;
+
+  case AST_VARIABLE_DECL:
+    fprintf(file,
+            "  node%d[\"Variable Decl: %.*s<br/>Type: %s<br/>Constant: %s\"]\n",
+            current_node, (int)node->as.variable_decl.name.length,
+            node->as.variable_decl.name.start,
+            ast_data_type_to_string(node->as.variable_decl.type),
+            node->as.variable_decl.is_constant ? "true" : "false");
+    if (node->as.variable_decl.initialiser) {
+      int child_node = *node_count;
+      ast_print_mermaid(node->as.variable_decl.initialiser, node_count, file);
+      fprintf(file, "  node%d --> node%d\n", current_node, child_node);
+    }
+    break;
+
+  case AST_GROUPING_EXPR:
+    fprintf(file, "  node%d[\"Grouping Expr\"]\n", current_node);
+    int child_node = *node_count;
+    ast_print_mermaid(node->as.grouping_expr.expr, node_count, file);
+    fprintf(file, "  node%d --> node%d\n", current_node, child_node);
+    break;
+
+  case AST_PRINT_STMT:
+    fprintf(file, "  node%d[\"Print Stmt\"]\n", current_node);
+    child_node = *node_count;
+    ast_print_mermaid(node->as.print_stmt.expr, node_count, file);
+    fprintf(file, "  node%d --> node%d\n", current_node, child_node);
+    break;
+
+  case AST_BINARY_EXPR:
+    fprintf(file, "  node%d[\"Binary Expr: %.*s\"]\n", current_node,
+            (int)node->as.binary_expr.token.length,
+            node->as.binary_expr.token.start);
+    int left_node = *node_count;
+    ast_print_mermaid(node->as.binary_expr.left, node_count, file);
+    int right_node = *node_count;
+    ast_print_mermaid(node->as.binary_expr.right, node_count, file);
+    fprintf(file, "  node%d --> node%d\n", current_node, left_node);
+    fprintf(file, "  node%d --> node%d\n", current_node, right_node);
+    break;
+
+  case AST_UNARY_EXPR:
+    fprintf(file, "  node%d[\"Unary Expr: %.*s\"]\n", current_node,
+            (int)node->as.unary_expr.token.length,
+            node->as.unary_expr.token.start);
+    child_node = *node_count;
+    ast_print_mermaid(node->as.unary_expr.right, node_count, file);
+    fprintf(file, "  node%d --> node%d\n", current_node, child_node);
+    break;
+
+  case AST_LITERAL_EXPR: {
+    enum ast_data_type type = node->as.literal_expr.type;
+    if (type == TYPE_I32) {
+      fprintf(file, "  node%d[\"Literal: %d\"]\n", current_node,
+              node->as.literal_expr.as.i32);
+    } else if (type == TYPE_BOOL) {
+      fprintf(file, "  node%d[\"Literal: %s\"]\n", current_node,
+              node->as.literal_expr.as.boolean ? "true" : "false");
+    }
+    break;
+  }
+
+  case AST_IDENTIFIER_EXPR:
+    fprintf(file, "  node%d[\"Identifier: %.*s\"]\n", current_node,
+            (int)node->as.idenitifer.length, node->as.idenitifer.start);
+    break;
+
+  default:
+    fprintf(file, "  node%d[\"Unknown Node Type\"]\n", current_node);
+  }
+}
+
+int ast_write_mermaid(struct ast_node *root, const char *path) {
+  FILE *file = fopen(path, "w");
+  if (file == NULL)
+    ERROR_OUT();
+
+  fprintf(file, "graph TD\n");
+  int node_count = 0;
+  ast_print_mermaid(root, &node_count, file);
+
+  fclose(file);
+
+  char command[256];
+  snprintf(command, sizeof(command), "npx mmdc -i %s -o %s", path, path);
+
+  return system(command);
 }

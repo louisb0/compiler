@@ -104,5 +104,6 @@ struct ast_node *ast_new_number_expr(int literal);
 struct ast_node *ast_new_bool_expr(bool literal);
 
 void ast_print(struct ast_node *root, int ident);
+int ast_write_mermaid(struct ast_node *root, const char *path);
 
 #endif
