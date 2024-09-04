@@ -49,6 +49,26 @@ enum ast_data_type typecheck(struct ast_node *root, symbol_table_t *table) {
   case AST_PRINT_STMT:
     return typecheck(root->as.print_stmt.expr, table);
 
+  case AST_ASSIGNMENT_STMT: {
+    enum ast_data_type target =
+        typecheck(root->as.assignment_stmt.identifier, table);
+    enum ast_data_type expr = typecheck(root->as.assignment_stmt.expr, table);
+
+    if (target == TYPE_ERROR || expr == TYPE_ERROR)
+      return TYPE_ERROR;
+
+    if (target == expr) {
+      return target;
+    }
+
+    printf("[error] Cannot assign %s to variable '%.*s' of type %s.\n",
+           type_to_string(expr),
+           root->as.assignment_stmt.identifier->as.identifier.length,
+           root->as.assignment_stmt.identifier->as.identifier.start,
+           type_to_string(target));
+    return TYPE_ERROR;
+  }
+
   case AST_BINARY_EXPR: {
     enum ast_data_type left = typecheck(root->as.binary_expr.left, table);
     enum ast_data_type right = typecheck(root->as.binary_expr.right, table);
@@ -85,7 +105,7 @@ enum ast_data_type typecheck(struct ast_node *root, symbol_table_t *table) {
     return typecheck(root->as.grouping_expr.expr, table);
 
   case AST_IDENTIFIER_EXPR:
-    return symbol_table_get(table, &root->as.idenitifer)->as.variable_decl.type;
+    return symbol_table_get(table, &root->as.identifier)->as.variable_decl.type;
 
   case AST_VARIABLE_DECL: {
     enum ast_data_type initialiser =

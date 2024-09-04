@@ -28,9 +28,10 @@ enum parser_precedence {
   PREC_PRIMARY
 };
 
-typedef struct ast_node *(*parser_prefix_fn)(parser_t *parser);
+typedef struct ast_node *(*parser_prefix_fn)(parser_t *parser, bool can_assign);
 typedef struct ast_node *(*parser_infix_fn)(parser_t *parser,
-                                            struct ast_node *left);
+                                            struct ast_node *left,
+                                            bool can_assign);
 
 struct parser_rule {
   parser_prefix_fn prefix;
@@ -145,12 +146,13 @@ static void synchronise(parser_t *parser) {
 
 static struct ast_node *parse_variable_decl(parser_t *parser);
 static struct ast_node *parse_print_stmt(parser_t *parser);
-static struct ast_node *parse_grouping_expr(parser_t *parser);
-static struct ast_node *parse_binary_expr(parser_t *parser,
-                                          struct ast_node *left);
-static struct ast_node *parse_unary_expr(parser_t *parser);
-static struct ast_node *parse_identifier_expr(parser_t *parser);
-static struct ast_node *parse_literal_expr(parser_t *parser);
+static struct ast_node *parse_grouping_expr(parser_t *parser, bool can_assign);
+static struct ast_node *
+parse_binary_expr(parser_t *parser, struct ast_node *left, bool can_assign);
+static struct ast_node *parse_unary_expr(parser_t *parser, bool can_assign);
+static struct ast_node *parse_identifier_expr(parser_t *parser,
+                                              bool can_assign);
+static struct ast_node *parse_literal_expr(parser_t *parser, bool can_assign);
 
 static struct ast_node *parse_precedence(parser_t *parser,
                                          enum parser_precedence prec);
@@ -230,7 +232,7 @@ static struct ast_node *parse_print_stmt(parser_t *parser) {
   return ast_new_print_stmt(expr);
 }
 
-static struct ast_node *parse_grouping_expr(parser_t *parser) {
+static struct ast_node *parse_grouping_expr(parser_t *parser, bool can_assign) {
   assert(parser->previous.type == TOKEN_LEFT_PAREN);
 
   struct ast_node *expr = parse_expr(parser);
@@ -239,8 +241,8 @@ static struct ast_node *parse_grouping_expr(parser_t *parser) {
   return ast_new_grouping_expr(expr);
 }
 
-static struct ast_node *parse_binary_expr(parser_t *parser,
-                                          struct ast_node *left) {
+static struct ast_node *
+parse_binary_expr(parser_t *parser, struct ast_node *left, bool can_assign) {
   struct scanner_token op = parser->previous;
 
   assert(IS_BINARY_TOKEN(op.type));
@@ -249,7 +251,7 @@ static struct ast_node *parse_binary_expr(parser_t *parser,
   return ast_new_binary_expr(op, left, parse_precedence(parser, prec));
 }
 
-static struct ast_node *parse_unary_expr(parser_t *parser) {
+static struct ast_node *parse_unary_expr(parser_t *parser, bool can_assign) {
   struct scanner_token op = parser->previous;
 
   assert(IS_UNARY_TOKEN(op.type));
@@ -258,13 +260,21 @@ static struct ast_node *parse_unary_expr(parser_t *parser) {
   return ast_new_unary_expr(op, parse_precedence(parser, prec));
 }
 
-static struct ast_node *parse_identifier_expr(parser_t *parser) {
+static struct ast_node *parse_identifier_expr(parser_t *parser,
+                                              bool can_assign) {
   assert(parser->previous.type == TOKEN_IDENTIFIER);
 
-  return ast_new_identifier_expr(parser->previous);
+  struct ast_node *to_return = ast_new_identifier_expr(parser->previous);
+
+  if (can_assign && match(parser, TOKEN_EQUAL)) {
+    struct ast_node *expr = parse_expr(parser);
+    to_return = ast_new_assignment_stmt(to_return, expr);
+  }
+
+  return to_return;
 }
 
-static struct ast_node *parse_literal_expr(parser_t *parser) {
+static struct ast_node *parse_literal_expr(parser_t *parser, bool can_assign) {
   assert(IS_LITERAL_TOKEN(parser->previous.type));
 
   switch (parser->previous.type) {
@@ -331,14 +341,20 @@ static struct ast_node *parse_precedence(parser_t *parser,
     return NULL;
   }
 
-  struct ast_node *left = prefix(parser);
+  bool can_assign = prec <= PREC_ASSIGNMENT;
+
+  struct ast_node *left = prefix(parser, can_assign);
   while (prec <= get_rule(parser->current.type)->prec) {
     if (parser->current.type == TOKEN_EOF)
       break;
 
     advance(parser);
     parser_infix_fn infix = get_rule(parser->previous.type)->infix;
-    left = infix(parser, left);
+    left = infix(parser, left, can_assign);
+  }
+
+  if (can_assign && match(parser, TOKEN_EQUAL)) {
+    error(parser, &parser->previous, "Invalid assignment target.");
   }
 
   return left;

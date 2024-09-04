@@ -29,10 +29,20 @@ bool resolver_generate_table(struct ast_node *root, symbol_table_t *table) {
   case AST_GROUPING_EXPR:
     return resolver_generate_table(root->as.grouping_expr.expr, table);
 
-  case AST_IDENTIFIER_EXPR:
-    if (!symbol_table_get(table, &root->as.idenitifer)) {
+  case AST_ASSIGNMENT_STMT:
+    if (!symbol_table_get(
+            table, &root->as.assignment_stmt.identifier->as.identifier)) {
       printf("[error] Identifier '%.*s' is undeclared at time of reference.\n",
-             root->as.idenitifer.length, root->as.idenitifer.start);
+             root->as.assignment_stmt.identifier->as.identifier.length,
+             root->as.assignment_stmt.identifier->as.identifier.start);
+      return false;
+    }
+    return true;
+
+  case AST_IDENTIFIER_EXPR:
+    if (!symbol_table_get(table, &root->as.identifier)) {
+      printf("[error] Identifier '%.*s' is undeclared at time of reference.\n",
+             root->as.identifier.length, root->as.identifier.start);
       return false;
     }
     return true;
@@ -40,7 +50,7 @@ bool resolver_generate_table(struct ast_node *root, symbol_table_t *table) {
   case AST_VARIABLE_DECL: {
     if (symbol_table_get(table, &root->as.variable_decl.name)) {
       printf("[error] Cannot redeclare variable '%.*s'.\n",
-             root->as.idenitifer.length, root->as.idenitifer.start);
+             root->as.identifier.length, root->as.identifier.start);
       return false;
     }
 

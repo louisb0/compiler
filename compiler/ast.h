@@ -10,6 +10,7 @@ enum ast_node_type {
   AST_PROGRAM,
   AST_VARIABLE_DECL,
   AST_PRINT_STMT,
+  AST_ASSIGNMENT_STMT,
   AST_GROUPING_EXPR,
   AST_BINARY_EXPR,
   AST_LITERAL_EXPR,
@@ -37,6 +38,11 @@ struct ast_expr_stmt {
 };
 
 struct ast_print_stmt {
+  struct ast_node *expr;
+};
+
+struct ast_assignment_stmt {
+  struct ast_node *identifier;
   struct ast_node *expr;
 };
 
@@ -74,12 +80,13 @@ struct ast_node {
     struct ast_variable_decl variable_decl;
     struct ast_expr_stmt expr_stmt;
     struct ast_print_stmt print_stmt;
+    struct ast_assignment_stmt assignment_stmt;
     struct ast_grouping_expr grouping_expr;
     struct ast_binary_expr binary_expr;
     struct ast_unary_expr unary_expr;
     struct ast_literal_expr literal_expr;
 
-    struct scanner_token idenitifer;
+    struct scanner_token identifier;
   } as;
 };
 
@@ -93,6 +100,8 @@ struct ast_node *ast_new_variable_decl(struct scanner_token name,
                                        bool is_constant,
                                        struct ast_node *initialiser);
 struct ast_node *ast_new_print_stmt(struct ast_node *expr);
+struct ast_node *ast_new_assignment_stmt(struct ast_node *identifier,
+                                         struct ast_node *expr);
 struct ast_node *ast_new_grouping_expr(struct ast_node *expr);
 struct ast_node *ast_new_binary_expr(struct scanner_token token,
                                      struct ast_node *left,

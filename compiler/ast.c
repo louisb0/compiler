@@ -33,6 +33,11 @@ void ast_free(struct ast_node **root) {
     ast_free(&(*root)->as.print_stmt.expr);
     break;
 
+  case AST_ASSIGNMENT_STMT:
+    ast_free(&(*root)->as.assignment_stmt.identifier);
+    ast_free(&(*root)->as.assignment_stmt.expr);
+    break;
+
   case AST_BINARY_EXPR:
     ast_free(&(*root)->as.binary_expr.left);
     ast_free(&(*root)->as.binary_expr.right);
@@ -92,6 +97,14 @@ struct ast_node *ast_new_print_stmt(struct ast_node *expr) {
   return node;
 }
 
+struct ast_node *ast_new_assignment_stmt(struct ast_node *identifier,
+                                         struct ast_node *expr) {
+  struct ast_node *node = ast_new(AST_ASSIGNMENT_STMT);
+  node->as.assignment_stmt.identifier = identifier;
+  node->as.assignment_stmt.expr = expr;
+  return node;
+}
+
 struct ast_node *ast_new_grouping_expr(struct ast_node *expr) {
   struct ast_node *node = ast_new(AST_GROUPING_EXPR);
   node->as.grouping_expr.expr = expr;
@@ -118,7 +131,7 @@ struct ast_node *ast_new_unary_expr(struct scanner_token token,
 
 struct ast_node *ast_new_identifier_expr(struct scanner_token name) {
   struct ast_node *node = ast_new(AST_IDENTIFIER_EXPR);
-  node->as.idenitifer = name;
+  node->as.identifier = name;
   return node;
 }
 
@@ -211,8 +224,8 @@ void ast_print(struct ast_node *node, int indent) {
   }
 
   case AST_IDENTIFIER_EXPR:
-    printf("identifier_expr: %.*s\n", (int)node->as.idenitifer.length,
-           node->as.idenitifer.start);
+    printf("identifier_expr: %.*s\n", (int)node->as.identifier.length,
+           node->as.identifier.start);
     break;
 
   default:
@@ -265,6 +278,16 @@ static void ast_print_mermaid(struct ast_node *node, int *node_count,
     fprintf(file, "  node%d --> node%d\n", current_node, child_node);
     break;
 
+  case AST_ASSIGNMENT_STMT:
+    fprintf(file, "  node%d[\"Assignment Stmt\"]\n", current_node);
+    int identifier_node = *node_count;
+    ast_print_mermaid(node->as.assignment_stmt.identifier, node_count, file);
+    int expr_node = *node_count;
+    ast_print_mermaid(node->as.assignment_stmt.expr, node_count, file);
+    fprintf(file, "  node%d --> node%d\n", current_node, identifier_node);
+    fprintf(file, "  node%d --> node%d\n", current_node, expr_node);
+    break;
+
   case AST_BINARY_EXPR:
     fprintf(file, "  node%d[\"Binary Expr: %.*s\"]\n", current_node,
             (int)node->as.binary_expr.token.length,
@@ -300,11 +323,11 @@ static void ast_print_mermaid(struct ast_node *node, int *node_count,
 
   case AST_IDENTIFIER_EXPR:
     fprintf(file, "  node%d[\"Identifier: %.*s\"]\n", current_node,
-            (int)node->as.idenitifer.length, node->as.idenitifer.start);
+            (int)node->as.identifier.length, node->as.identifier.start);
     break;
 
   default:
-    fprintf(file, "  node%d[\"Unknown Node Type\"]\n", current_node);
+    UNREACHABLE();
   }
 }
 
